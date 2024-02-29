@@ -1,39 +1,48 @@
-from scapy.all import ARP, Ether, srp
+import scapy.all as scapy
+import socket
 
-def get_mac(ip_address):
-    # Create ARP packet
-    arp_request = ARP(pdst=ip_address)
+# target gegevens
+target_ports = [21, 22, 80, 443]
 
-    # Create Ethernet frame
-    broadcast = Ether(dst="ff:ff:ff:ff:ff:ff")
+# Vul hier de naam van je Ethernet-adapter in
+ethernet_adapter = "en7"
+ip = "192.168.1.1/24"
+arp_request = scapy.ARP(pdst=ip)
+broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
+arp_request_broadcast = broadcast / arp_request
+networks = []
 
-    # Combine Ethernet frame and ARP packet
-    arp_request_broadcast = broadcast / arp_request
+# Script moet worden uitgevoerd met sudo
+def scan():
+    answered_list = scapy.srp(arp_request_broadcast, timeout=1, iface=ethernet_adapter, verbose=False)[0]
+    results = [{"ip": element[1].psrc, "mac": element[1].hwsrc} for element in answered_list]
+    return results
 
-    # Send the packet and capture response
-    answered_list = srp(arp_request_broadcast, timeout=1, verbose=False)[0]
+def display_results(results):
+    print("IP Address\t\tMAC Address")
+    print("-----------------------------------------")
+    for result in results:
+        print(result["ip"] + "\t\t" + result["mac"])
 
-    # Return the MAC address
-    if answered_list:
-        return answered_list[0][1].hwsrc
-    else:
-        return None
+def scan_ports(ip, ports):
+    open_ports = []
+    for port in ports:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)  # Timeout van 1 seconde
+        result = sock.connect_ex((ip, port))
+        if result == 0:
+            open_ports.append(port)
+        sock.close()
+    return open_ports
 
-# IP addresses
-laptop_ip = "192.168.1.127"
-router_ip = "192.168.1.1"
+# Aanvullende functie om de resultaten weer te geven
+def display_open_ports(ip, open_ports):
+    print(f"Open poorten op {ip}: {open_ports}")
 
-# Get MAC addresses
-laptop_mac = get_mac(laptop_ip)
-router_mac = get_mac(router_ip)
+# Scan uitvoeren en gevonden IP-adressen gebruiken voor poortscan
+scan_results = scan()
+display_results(scan_results)
 
-# Print results
-if laptop_mac:
-    print(f"Laptop IP: {laptop_ip} \t Laptop MAC: {laptop_mac}")
-else:
-    print(f"No response for {laptop_ip}")
-
-if router_mac:
-    print(f"Router IP: {router_ip} \t Router MAC: {router_mac}")
-else:
-    print(f"No response for {router_ip}")
+for result in scan_results:
+    open_ports = scan_ports(result["ip"], target_ports)
+    display_open_ports(result["ip"], open_ports)

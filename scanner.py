@@ -1,6 +1,12 @@
 import scapy.all as scapy
 import socket
 
+# target gegevens 
+ip_target = "192.168.1.1"
+target_netmask = "24"
+ip = "192.168.1.1/24"
+target_ports = [21, 22, 80, 443]
+
 # Vul hier de naam van je Ethernet-adapter in
 ethernet_adapter = "en7"
 ip = "192.168.1.1/24"
@@ -13,12 +19,7 @@ networks = []
 # Script moet worden uitgevoerd met sudo
 def scan():
     answered_list = scapy.srp(arp_request_broadcast, timeout=1, iface=ethernet_adapter, verbose=False)[0]
-    results = []
-
-    for element in answered_list:
-        result = {"ip": element[1].psrc, "mac": element[1].hwsrc}
-        results.append(result)
-    
+    results = [{"ip": element[1].psrc, "mac": element[1].hwsrc} for element in answered_list]
     return results
 
 def display_results(results):
@@ -27,24 +28,34 @@ def display_results(results):
     for result in results:
         print(result["ip"] + "\t\t" + result["mac"])
 
-def hostname_detection(net_area, net_mask):
-    request = scapy.ARP()
-    networks.clear()
-    request.pdst = f'{net_area}/{net_mask}'
-    clients = scapy.srp(arp_request_broadcast, timeout=5, iface=ethernet_adapter)[0]
-    for sent_ip, received_ip in clients:
-        networks.append({'IP': received_ip.psrc,
-                         'MAC': received_ip.hwsrc
-                        #  Werkt nog niet
-                        #  ,'HOSTNAME': socket.gethostbyaddr(received_ip.psrc)[0]
-                        })
-        
-    return networks
+def scan_ports(ip, ports):
+    open_ports = []
+    for port in ports:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)  # Timeout van 1 seconde
+        result = sock.connect_ex((ip, port))
+        if result == 0:
+            open_ports.append(port)
+        sock.close()
+    return open_ports
 
-target_ip = "192.168.1.1/24"
-ip_target = "192.168.1.1"
-target_netmask = "24"
+# Aanvullende functie om de resultaten weer te geven
+def display_open_ports(ip, open_ports):
+    print(f"Open poorten op {ip}: {open_ports}")
+
+
+target_ports = [21, 22, 80, 443]  # Voeg hier de gewenste poorten toe
+
+open_ports = scan_ports(ip_target, target_ports)
+display_open_ports(ip_target, open_ports)
+
+
+
+
 scan_results = scan()
-network_results = hostname_detection(ip_target, target_netmask)
-print(network_results)
 display_results(scan_results)
+
+
+
+
+
