@@ -38,7 +38,7 @@ def call_server(username, password):
     return reply, time_delta
 
 for password in passwords:
-    while number < 6:
+    while number <= len(passwords):
         info = call_server("000000", password)
         tijd += info[1]
         print("Elapsed total time:", tijd, "seconds")
