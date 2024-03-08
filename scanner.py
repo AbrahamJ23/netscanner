@@ -92,8 +92,10 @@ def main():
         for result in scan_results:
             open_ports = scan_ports(result["ip"], args.ports)
             display_open_ports(result["ip"], open_ports)
-            # open_ports = scan_ports(result["ip"], target_ports_range)
-            # display_open_ports(result["ip"], open_ports)
+            
+            # Voeg deze lijn toe om de hostnaam weer te geven
+            hostname = get_hostname(result["ip"])
+            print(f"Hostname van {result['ip']}: {hostname}")
 
 if __name__ == "__main__":
     main()
