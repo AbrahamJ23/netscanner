@@ -2,6 +2,7 @@ import argparse
 import nmap
 import scapy.all as scapy
 import socket
+info = "Realtek PCIe GbE Family Controller #2"
 
 def scan(ip, adapter):
     arp_request = scapy.ARP(pdst=ip)
@@ -42,7 +43,7 @@ def detect_os(target_ip):
         return "Er is een fout opgetreden bij het scannen"
     except Exception as e:
         return f"Fout: {str(e)}"
-
+    
 def get_hostname(ip):
     hostname = "-"
     try:
@@ -68,8 +69,8 @@ def display_os(ip, open_ports):
 
 def main():
     parser = argparse.ArgumentParser(description="Netwerkscanner met optionele OS-detectie en poortscanning.")
-    parser.add_argument("ip", help="Del-IP-adres of IP-bereik (CIDR-notatie)")
-    parser.add_argument("adapter", help="Naam van de Ethernet-adapter")
+    parser.add_argument("ip", help="Doel-IP-adres of IP-bereik (CIDR-notatie)")
+    parser.add_argument("--adapter", required=True, help="Naam van de Ethernet-adapter")
     parser.add_argument("--ports", type=int, nargs=2, help="Poorten om te scannen (bijv. --ports 20 80) poorten 20 t/m 80")
     parser.add_argument("--osdetect", action="store_true", help="Voer OS-detectie uit")
     parser.add_argument("--services", action="store_true", help="Voer servicescan uit")
@@ -83,20 +84,21 @@ def main():
         for result in scan_results:
             os_network = detect_os(result["ip"])
             display_os(result["ip"], os_network)
-
             # Hostname detectie
             hostname = get_hostname(result["ip"])
             print(f"Hostname van {result['ip']}: {hostname}")
+
+
     
     if args.services and args.ports:
         for result in scan_results:
             scan_services(result["ip"], args.ports)
+            
 
     if args.ports:
         for result in scan_results:
             open_ports = scan_ports(result["ip"], args.ports)
             display_open_ports(result["ip"], open_ports)
     
-
 if __name__ == "__main__":
     main()
