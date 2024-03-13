@@ -1,4 +1,66 @@
-from base64 import b64decode
+from base64 import *
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import unpad, pad
+
+
+def repeating_key_xor(text, key):
+    """Takes two bytestrings and XORs them, returning a bytestring.
+    Extends the key to match the text length.
+    
+    Parameters
+    ----------
+    text : bytes
+        bytes-object to be xor'd w/ key
+    key : bytes
+        bytes-object to be xor'd w/ text
+        
+    Returns
+    -------
+    bytes
+        binary XOR of text & key
+    """
+
+    extended_key = key * (len(text) // len(key)) + key[:len(text) % len(key)]
+
+    xor_output = bytes([text_byte ^ key_byte for text_byte, key_byte in zip(text, extended_key)])
+
+
+    return xor_output
+
+# Laat deze asserts onaangetast!
+assert type(repeating_key_xor(b'all too many words',b'bar')) == bytes
+assert b64encode(repeating_key_xor(b'all too many words',b'bar'))\
+   == b'Aw0eQhUdDUEfAw8LQhYdEAUB'
+
+def ECB_decrypt(ciphertext, key):
+    """Accepts a ciphertext in byte-form,
+    as well as 16-byte key, and returns 
+    the corresponding plaintext.
+
+    Parameters
+    ----------
+    ciphertext : bytes
+        ciphertext to be decrypted
+    key : bytes
+        key to be used in decryption
+
+    Returns
+    -------
+    bytes
+        decrypted plaintext
+    """
+
+    plaintext = AES.new(key, AES.MODE_ECB)
+
+    return plaintext.decrypt(ciphertext) # use 16 bytes key to create new cipherblock 
+
+
+# Laat deze asserts onaangetast & onderaan je code!
+ciphertext = b64decode('86ueC+xlCMwpjrosuZ+pKCPWXgOeNJqL0VI3qB59SSY=')
+key = b'SECRETSAREHIDDEN'
+assert ECB_decrypt(ciphertext, key)[:28] == \
+    b64decode('SGFzdCBkdSBldHdhcyBaZWl0IGZ1ciBtaWNoPw==')
+
 
 def CBC_decrypt(ciphertext, key, IV):
     """Decrypts a given plaintext in CBC mode.
@@ -23,7 +85,16 @@ def CBC_decrypt(ciphertext, key, IV):
         Decrypted plaintext
         """
 
-    return(plaintext)
+    plaintext = b""                                                         # Initialiseer plaintext als byte object
+    previous_block = IV
+
+    for i in range(0, len(ciphertext), 16):                                 # Scan door blokken van 16 bytes (128 bits)
+        block = a_ciphertext[i:i+16]                                        # Deel de ciphertext op in blokken van 16 bytes
+        decrypted_block = ECB_decrypt(block, key)                           # Maak gebruik van de ECB_decrypt functie met de key
+        plaintext += repeating_key_xor(decrypted_block, previous_block)     # Xor het decrypted block met de previous block 
+        previous_block = block                                              # Update het previous block voor de volgende iteration
+
+    return plaintext
 
 
 # Laat dit blok code onaangetast & onderaan je code!
@@ -32,3 +103,6 @@ a_key = b'SECRETSAREHIDDEN'
 a_IV = b'WE KNOW THE GAME'
 assert CBC_decrypt(a_ciphertext, a_key, a_IV)[:18] == \
     b64decode('eW91IGtub3cgdGhlIHJ1bGVz')
+
+print(CBC_decrypt(a_ciphertext, a_key, a_IV)[:18])
+
