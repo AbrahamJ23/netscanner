@@ -20,15 +20,15 @@ def fixed_length_xor(text, key):
     if len(text) != len(key):
         raise ValueError("Input moet even lang zijn!")
     
-    xor_output = ''
+    xor_output = b''
     for bit1, bit2 in zip(text, key):
-        xor_output += str(int(bit1)) ^ str(int(bit2))
+        xor_output += bytes([bit1 ^ bit2])
     
     return xor_output
 
 # Laat deze asserts onaangetast!
-assert type(fixed_length_xor(b'foo',b'bar')) == bytes
-assert b64encode(fixed_length_xor(b'foo',b'bar')) == b'BA4d'
+assert type(fixed_length_xor(b'foo', b'bar')) == bytes
+assert b64encode(fixed_length_xor(b'foo', b'bar')) == b'BA4d'
 
 def repeating_key_xor(text, key):
     """Takes two bytestrings and XORs them, returning a bytestring.
