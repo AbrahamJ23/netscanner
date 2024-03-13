@@ -21,9 +21,9 @@ def ECB_decrypt(ciphertext, key):
         decrypted plaintext
     """
 
-    plaintext = AES.new(key, AES.MODE_ECB)
+    plaintext = AES.new(key, AES.MODE_ECB)          # Maak een AES object met 'key' in ECB mode
 
-    return plaintext.decrypt(ciphertext) # use 16 bytes key to create new cipherblock 
+    return plaintext.decrypt(ciphertext)            # Geef de plaintekst weer door de ciphertekst te decoderen
 
 
 # Laat deze asserts onaangetast & onderaan je code!

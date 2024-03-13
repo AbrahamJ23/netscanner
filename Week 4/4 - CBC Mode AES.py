@@ -20,9 +20,9 @@ def repeating_key_xor(text, key):
         binary XOR of text & key
     """
 
-    extended_key = key * (len(text) // len(key)) + key[:len(text) % len(key)]
+    extended_key = key * (len(text) // len(key)) + key[:len(text) % len(key)]                           # Breid de sleutel uit door deze zovaak te herhalen als nodig zodat deze even lang wordt als de text, als deze niet exacct past, slice hem dan.
 
-    xor_output = bytes([text_byte ^ key_byte for text_byte, key_byte in zip(text, extended_key)])
+    xor_output = bytes([text_byte ^ key_byte for text_byte, key_byte in zip(text, extended_key)])       # Voer een XOR uit tussen elke tekstbyte en keybyte
 
 
     return xor_output
@@ -50,9 +50,9 @@ def ECB_decrypt(ciphertext, key):
         decrypted plaintext
     """
 
-    plaintext = AES.new(key, AES.MODE_ECB)
+    plaintext = AES.new(key, AES.MODE_ECB)          # Maak een AES object met 'key' in ECB mode
 
-    return plaintext.decrypt(ciphertext) # use 16 bytes key to create new cipherblock 
+    return plaintext.decrypt(ciphertext)            # Geef de plaintekst weer door de ciphertekst te decoderen
 
 
 # Laat deze asserts onaangetast & onderaan je code!
