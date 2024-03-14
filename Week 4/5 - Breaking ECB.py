@@ -2,6 +2,9 @@ from base64 import b64decode
 from Crypto.Cipher import AES
 from secrets import token_bytes
 
+# Random key 
+sleutel = b"AAAAAAAAAAAAAAAA"
+
 def pkcs7_pad(plaintext, blocksize):
     """Appends the plaintext with n bytes,
     making it an even multiple of blocksize.
@@ -125,6 +128,42 @@ print("First byte of the secret text:", first_byte)
 #Opdracht 5 F.
 
 
+def find_secret(block_length, block_size, counter=0, secret=None, I=''):
+    if secret is None:
+        secret = []
+
+    sleutel = b"AAAAAAAAAAAAAAAA"
+
+    block_length = block_length * block_size
+
+    if counter == block_length:
+        return "".join(secret)
+
+    padding = b'A' * (block_length - counter - 1)
+
+    if I != "":
+        new_ciphertext = padding + ''.join(secret).encode("ascii")
+    else:
+        new_ciphertext = padding
+
+    final_ciphertext = ECB_oracle(padding, sleutel)
+
+    for byte_value in range(256):
+        new_I = bytes([byte_value])
+        cipher = ECB_oracle(new_ciphertext + new_I, sleutel)
+        if final_ciphertext[:block_length] == cipher[:block_length]:
+            I = new_I.decode("ascii")
+            print("Character gevonden: ", I)
+            secret.append(I)
+            break
+
+    return find_secret(block_length, block_size, counter + 1, secret, I)
+
+# Roep de functie aan
+block_length = find_block_length()
+secret = find_secret(block_length, block_size=2)
+
+print("Secret text:", secret)
 
 
 
@@ -133,3 +172,10 @@ print("First byte of the secret text:", first_byte)
 
 
 
+
+# length_block = find_block_length()
+# block_size = len(ECB_oracle(b"", sleutel)) // length_block
+
+# secret = find_secret(length_block, block_size)
+# print(secret)
+# print(b64decode('U2F5IG5hIG5hIG5hCk9uIGEgZGFyayBkZXNlcnRlZCB3YXksIHNheSBuYSBuYSBuYQpUaGVyZSdzIGEgbGlnaHQgZm9yIHlvdSB0aGF0IHdhaXRzLCBpdCdzIG5hIG5hIG5hClNheSBuYSBuYSBuYSwgc2F5IG5hIG5hIG5hCllvdSdyZSBub3QgYWxvbmUsIHNvIHN0YW5kIHVwLCBuYSBuYSBuYQpCZSBhIGhlcm8sIGJlIHRoZSByYWluYm93LCBhbmQgc2luZyBuYSBuYSBuYQpTYXkgbmEgbmEgbmE='))
