@@ -129,86 +129,58 @@ print("First byte of the secret text:", first_byte)
 
 
 def find_secret(block_length, block_size):
-    counter = 0 
-    secret = []
-    I = ''
+    """
+    Vindt de geheime tekst door een aanval op de ECB-versleuteling uit te voeren.
 
+    Parameters:
+        - block_length: De lengte van een enkel blok in bytes.
+        - block_size: Het aantal blokken in de geheime tekst.
+
+    Returns:
+        - De geheime tekst die is gevonden.
+    """
+    counter = 0  # Initialiseer de teller
+    secret = []  # Lijst om de gevonden tekens op te slaan
+    I = ''  # Variabele voor het laatst gevonden teken
+
+    # Bereken de totale lengte van de geheime tekst in bytes
     block_length = block_length * block_size
 
+    # Voer een lus uit totdat alle blokken van de geheime tekst zijn gevonden
     while counter != block_length:
-        padding = b'A' * (block_length - counter - 1) 
+        padding = b'A' * (block_length - counter - 1)  # Genereer de padding
 
         if I != "":
-            new_ciphertext = padding + ''.join(secret).encode("ascii")
+            new_ciphertext = padding + ''.join(secret).encode("ascii")  # Voeg de gevonden tekens toe aan het ciphertext
         else:
             new_ciphertext = padding
-        
-        final_ciphertext = ECB_oracle(padding, sleutel)
 
+        final_ciphertext = ECB_oracle(padding, sleutel)  # Versleutel de padding
+
+        # Loop door alle mogelijke tekens om het laatste teken van de geheime tekst te vinden
         for I in range(256):
 
-            I = bytes([I])
-            cipher = ECB_oracle(new_ciphertext + I, sleutel)
-            if final_ciphertext[:block_length] == cipher[:block_length]:
-                I = I.decode("ascii")
-                print("Character gevonden: ", I)
-                secret.append(I)
-        counter += 1
-    return "".join(secret)
-# Roep de functie aan
+            I = bytes([I])  # Zet het teken om in bytes
+            cipher = ECB_oracle(new_ciphertext + I, sleutel)  # Versleutel de nieuwe ciphertext
 
+            # Controleer of het eerste blok van de cijfertekst overeenkomt met het eerste blok van de doelcijfertekst
+            if final_ciphertext[:block_length] == cipher[:block_length]:
+                I = I.decode("ascii")  # Converteer het gevonden teken naar een karakter
+                print("Character gevonden: ", I)  # Geef het gevonden teken weer
+                secret.append(I)  # Voeg het gevonden teken toe aan de lijst met geheime tekens
+        counter += 1  # Verhoog de teller
+
+    return "".join(secret)  # Geef de gevonden geheime tekst terug
+
+# Roep de functie aan
 block_length = find_block_length()
 block_count = len(ECB_oracle(b"", sleutel)) // block_length
 
+# gevonden secret uitprinten
 secret = find_secret(block_length, block_count)
-
 print("Secret text:", secret)
 
 
 
-
-
-
-
-# length_block = find_block_length()
-# block_size = len(ECB_oracle(b"", sleutel)) // length_block
-
-# secret = find_secret(length_block, block_size)
-# print(secret)
-# print(b64decode('U2F5IG5hIG5hIG5hCk9uIGEgZGFyayBkZXNlcnRlZCB3YXksIHNheSBuYSBuYSBuYQpUaGVyZSdzIGEgbGlnaHQgZm9yIHlvdSB0aGF0IHdhaXRzLCBpdCdzIG5hIG5hIG5hClNheSBuYSBuYSBuYSwgc2F5IG5hIG5hIG5hCllvdSdyZSBub3QgYWxvbmUsIHNvIHN0YW5kIHVwLCBuYSBuYSBuYQpCZSBhIGhlcm8sIGJlIHRoZSByYWluYm93LCBhbmQgc2luZyBuYSBuYSBuYQpTYXkgbmEgbmEgbmE='))
-
-def tester(block_length, block_count, counter=0, secret=None, I='', padding=b'A'):
-    if secret is None:
-        secret = []
-
-    if counter == block_count:
-        return "".join(secret)
-
-    block_size = block_length * block_count
-
-    if I != "":
-        new_ciphertext = padding + b''.join(secret)
-    else:
-        new_ciphertext = padding
-
-    final_ciphertext = ECB_oracle(padding, sleutel)
-
-    for byte_value in range(256):
-        new_I = bytes([byte_value])
-        cipher = ECB_oracle(new_ciphertext + new_I, sleutel)
-        if final_ciphertext[:block_size] == cipher[:block_size]:
-            I = new_I.decode("ascii")
-            print("Character gevonden: ", I)
-            secret.append(I)
-            break
-
-    return tester(block_length, block_count, counter + 1, secret, I, padding)
-
-
-# Roep de functie aan
-block_length = find_block_length()
-block_count = len(ECB_oracle(b"", sleutel)) // block_length
-
-secret = tester(block_length, block_count)
 
 
