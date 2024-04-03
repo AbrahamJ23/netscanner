@@ -2,6 +2,7 @@ import argparse
 import nmap
 import scapy.all as scapy
 import socket
+from tabulate import tabulate
 
 def scan(ip, adapter):
     arp_request = scapy.ARP(pdst=ip)
@@ -12,10 +13,8 @@ def scan(ip, adapter):
     return results
 
 def display_results(results):
-    print("IP Address\t\tMAC Address")
-    print("-----------------------------------------")
-    for result in results:
-        print(result["ip"] + "\t\t" + result["mac"])
+    data = [[result["ip"], result["mac"]] for result in results]
+    print(tabulate(data, headers=["IP Address", "MAC Address"], tablefmt="fancy_grid"))
 
 def scan_ports(ip, port_range):
     open_ports = []
@@ -51,20 +50,28 @@ def get_hostname(ip):
         pass
     return hostname
 
+
+
+def display_open_ports(ip, open_ports):
+    data = [[ip, port] for port in open_ports]
+    print(tabulate(data, headers=["IP Address", "Open Port"], tablefmt="fancy_grid"))
+
+def display_os(ip, detected_os):
+    print(f"OS van {ip}: {detected_os}")
+
 def scan_services(ip, ports):
     nm = nmap.PortScanner()
     port_str = ','.join(map(str, ports))
     nm.scan(hosts=ip, arguments=f'-p {port_str} -sV')
 
+    service_results = []
     for port in ports:
-        service_info = nm[ip]['tcp'][port]
-        print(f"IP: {ip}, Poort: {port}, Service: {service_info['name']}, Versie: {service_info['version']}")
+        service_info = nm[ip]['tcp'].get(port, {})
+        service_name = service_info.get('name', '-')
+        service_version = service_info.get('product', '-') + " " + service_info.get('version', 'No version')
+        service_results.append((service_name, service_version))
 
-def display_open_ports(ip, open_ports):
-    print(f"Open poorten op {ip}: {open_ports}")
-
-def display_os(ip, open_ports):
-    print(f"OS van {ip}: {open_ports}")
+    return service_results
 
 def main():
     parser = argparse.ArgumentParser(description="Netwerkscanner met optionele OS-detectie en poortscanning.")
@@ -77,26 +84,40 @@ def main():
     args = parser.parse_args()
 
     scan_results = scan(args.ip, args.adapter)
-    display_results(scan_results)
 
-    if args.osdetect:
-        for result in scan_results:
-            os_network = detect_os(result["ip"])
-            display_os(result["ip"], os_network)
+    combined_results = []
 
-            # Hostname detectie
-            hostname = get_hostname(result["ip"])
-            print(f"Hostname van {result['ip']}: {hostname}")
-    
-    if args.services and args.ports:
-        for result in scan_results:
-            scan_services(result["ip"], args.ports)
+    for result in scan_results:
+        row = [result["ip"], result.get("mac", "N/A")]
 
-    if args.ports:
-        for result in scan_results:
+        if args.ports:
             open_ports = scan_ports(result["ip"], args.ports)
-            display_open_ports(result["ip"], open_ports)
-    
+            row.append(open_ports)
+        else:
+            row.append("No open ports")
+
+        if args.osdetect:
+            os_result = detect_os(result["ip"])
+            row.append(os_result)
+
+        if args.services and open_ports:
+            service_result = scan_services(result["ip"], args.ports)
+            row.append(service_result)
+        else:
+            row.append("No services")
+
+        combined_results.append(row)
+
+    headers = ["IP Address", "MAC Address", "Open Ports", "OS", "Service Name", "Service Version"]
+
+    # Convert empty service version to "No version"
+    for row in combined_results:
+        if isinstance(row[-1], list):
+            for service in row[-1]:
+                if service[1] == '':
+                    service[1] = 'No version'
+
+    print(tabulate(combined_results, headers=headers, tablefmt="fancy_grid"))
 
 if __name__ == "__main__":
     main()
